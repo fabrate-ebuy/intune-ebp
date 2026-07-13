@@ -43,7 +43,7 @@ foreach ($script in $Toolkit) {
 
 # --- 2. Descargar  y validar que sea JPG real ---
 try {
-    Invoke-WebRequest -Uri "$RepoBase/_EBP_25.jpg" -OutFile $Path -UseBasicParsing
+    Invoke-WebRequest -Uri "$RepoBase/wallpaper_EBP_25.jpg" -OutFile $Path -UseBasicParsing
     $b = [System.IO.File]::ReadAllBytes($Path) | Select-Object -First 2
     if ($b[0] -ne 0xFF -or $b[1] -ne 0xD8) {
         Write-Log " ERROR: el archivo descargado no es un JPG valido"
