@@ -9,7 +9,7 @@ $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # --- Configuracion ---
-$RepoBase      = "https://raw.githubusercontent.com/fabrate-ebuy/wallpaper-ebp/main"
+$RepoBase = "https://raw.githubusercontent.com/fabrate-ebuy/intune-ebp/main"
 $ToolkitFolder = "C:\ProgramData\EBP"
 $WallFolder    = "C:\Windows\Web\Wallpaper\Corporate"
 $WallpaperPath = "$WallFolder\wallpaper_EBP_25.jpg"
@@ -41,29 +41,29 @@ foreach ($script in $Toolkit) {
     }
 }
 
-# --- 2. Descargar wallpaper y validar que sea JPG real ---
+# --- 2. Descargar  y validar que sea JPG real ---
 try {
-    Invoke-WebRequest -Uri "$RepoBase/wallpaper_EBP_25.jpg" -OutFile $WallpaperPath -UseBasicParsing
-    $b = [System.IO.File]::ReadAllBytes($WallpaperPath) | Select-Object -First 2
+    Invoke-WebRequest -Uri "$RepoBase/_EBP_25.jpg" -OutFile $Path -UseBasicParsing
+    $b = [System.IO.File]::ReadAllBytes($Path) | Select-Object -First 2
     if ($b[0] -ne 0xFF -or $b[1] -ne 0xD8) {
-        Write-Log "Wallpaper ERROR: el archivo descargado no es un JPG valido"
+        Write-Log " ERROR: el archivo descargado no es un JPG valido"
         throw "No es JPG"
     }
-    Write-Log "Wallpaper descargado OK"
+    Write-Log " descargado OK"
 
     # --- 3. Aplicar fondo + lockscreen a nivel maquina (PersonalizationCSP, funciona en Pro como SYSTEM) ---
     $RegPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP"
     if (!(Test-Path $RegPath)) { New-Item -Path $RegPath -Force | Out-Null }
 
-    Set-ItemProperty -Path $RegPath -Name DesktopImagePath      -Value $WallpaperPath -Type String
+    Set-ItemProperty -Path $RegPath -Name DesktopImagePath      -Value $Path -Type String
     Set-ItemProperty -Path $RegPath -Name DesktopImageStatus    -Value 1 -Type DWord
-    Set-ItemProperty -Path $RegPath -Name DesktopImageUrl       -Value $WallpaperPath -Type String
-    Set-ItemProperty -Path $RegPath -Name LockScreenImagePath   -Value $WallpaperPath -Type String
+    Set-ItemProperty -Path $RegPath -Name DesktopImageUrl       -Value $Path -Type String
+    Set-ItemProperty -Path $RegPath -Name LockScreenImagePath   -Value $Path -Type String
     Set-ItemProperty -Path $RegPath -Name LockScreenImageStatus -Value 1 -Type DWord
-    Set-ItemProperty -Path $RegPath -Name LockScreenUrl         -Value $WallpaperPath -Type String
-    Write-Log "Wallpaper + LockScreen aplicados"
+    Set-ItemProperty -Path $RegPath -Name LockScreenUrl         -Value $Path -Type String
+    Write-Log " + LockScreen aplicados"
 } catch {
-    Write-Log "Wallpaper ERROR: $($_.Exception.Message)"
+    Write-Log " ERROR: $($_.Exception.Message)"
 }
 
 Write-Log "=== Deploy v1 finalizado ==="
