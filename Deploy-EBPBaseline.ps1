@@ -2,11 +2,11 @@
 # Deploy-EBPBaseline.ps1
 # Despliegue de toolkit corporativo + wallpaper/lockscreen
 # Ejecutar como SYSTEM desde Intune (Scripts de plataforma)
-# VERSION: 2  <-- subir este numero para forzar re-ejecucion en toda la flota
+# VERSION: 4  <-- subir este numero para forzar re-ejecucion en toda la flota
 # ============================================================
-# v2: descarga automaticamente TODO el contenido del repo a C:\ProgramData\EBP
-#     (excepto el propio Deploy y el wallpaper, que se manejan aparte).
-#     Para agregar un script/txt a la flota: subilo al repo y suma la VERSION.
+# Descarga automaticamente TODO el contenido del repo a C:\ProgramData\EBP
+# (excepto el propio Deploy y el wallpaper, que se manejan aparte).
+# Para agregar un script/txt a la flota: subilo al repo y suma la VERSION.
 # ============================================================
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -103,16 +103,16 @@ try {
 try {
     $ccPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent"
     if (!(Test-Path $ccPath)) { New-Item -Path $ccPath -Force | Out-Null }
- 
+
     # Placeholders promocionales (Candy Crush, LinkedIn, Solitario, etc.)
     Set-ItemProperty -Path $ccPath -Name "DisableWindowsConsumerFeatures" -Value 1 -Type DWord
- 
+
     # Contenido promocional en cuenta / bienvenida
     Set-ItemProperty -Path $ccPath -Name "DisableConsumerAccountStateContent" -Value 1 -Type DWord
- 
+
     # Contenido "optimizado en la nube" (sugerencias en inicio)
     Set-ItemProperty -Path $ccPath -Name "DisableCloudOptimizedContent" -Value 1 -Type DWord
- 
+
     Write-Log "Consumer features / placeholders bloqueados"
 } catch {
     Write-Log "Consumer features ERROR: $($_.Exception.Message)"
