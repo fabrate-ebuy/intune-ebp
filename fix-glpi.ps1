@@ -1,7 +1,7 @@
 # fix-glpi.ps1 - Reconfigura el servidor del agente GLPI y lo rearranca
 # Correr como ADMINISTRADOR. Ajustar $server a la URL real del GLPI.
 
-$server = "http://TU-IP-GLPI/front/inventory.php"   # <-- AJUSTAR
+$server = "http://10.20.20.234/glpi"   # <-- AJUSTAR
 $tag    = "migracion2026"
 
 Write-Host "== Fix GLPI Agent ==" -ForegroundColor Cyan
