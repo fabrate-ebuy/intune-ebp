@@ -98,5 +98,25 @@ try {
     Write-Log "Imagen ERROR: $($_.Exception.Message)"
 }
 
+# --- 4. Bloquear consumer features / placeholders promocionales ---
+# (equivalente a lo que se hacia en el autounattend, garantizado por registro)
+try {
+    $ccPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent"
+    if (!(Test-Path $ccPath)) { New-Item -Path $ccPath -Force | Out-Null }
+ 
+    # Placeholders promocionales (Candy Crush, LinkedIn, Solitario, etc.)
+    Set-ItemProperty -Path $ccPath -Name "DisableWindowsConsumerFeatures" -Value 1 -Type DWord
+ 
+    # Contenido promocional en cuenta / bienvenida
+    Set-ItemProperty -Path $ccPath -Name "DisableConsumerAccountStateContent" -Value 1 -Type DWord
+ 
+    # Contenido "optimizado en la nube" (sugerencias en inicio)
+    Set-ItemProperty -Path $ccPath -Name "DisableCloudOptimizedContent" -Value 1 -Type DWord
+ 
+    Write-Log "Consumer features / placeholders bloqueados"
+} catch {
+    Write-Log "Consumer features ERROR: $($_.Exception.Message)"
+}
+
 Write-Log "=== Deploy v2 finalizado ==="
 exit 0
