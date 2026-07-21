@@ -2,7 +2,7 @@
 # Deploy-EBPBaseline.ps1
 # Despliegue de toolkit corporativo + wallpaper/lockscreen
 # Ejecutar como SYSTEM desde Intune (Scripts de plataforma)
-# VERSION: 4  <-- subir este numero para forzar re-ejecucion en toda la flota
+# VERSION: 1  <-- subir este numero para forzar re-ejecucion en toda la flota
 # ============================================================
 # Descarga automaticamente TODO el contenido del repo a C:\ProgramData\EBP
 # (excepto el propio Deploy y el wallpaper, que se manejan aparte).
