@@ -52,5 +52,4 @@ Write-Host "`nForzando inventario contra $server ..."
 
 Write-Host "`nEstado final del servicio:"
 Get-Service glpi-agent -ErrorAction SilentlyContinue | Select-Object Name, Status, StartType
-
 Write-Host "Listo. Verificar que el activo aparezca en GLPI." -ForegroundColor Green
