@@ -6,7 +6,7 @@ $tag    = "migracion2026"
 
 Write-Host "== Fix GLPI Agent ==" -ForegroundColor Cyan
 
-$glpi = "C:\Program Files\GLPI-Agent\glpi-agent.exe"
+$glpi = "C:\Program Files\GLPI-Agent\perl\bin\glpi-agent.exe"
 if (!(Test-Path $glpi)) {
     Write-Host "GLPI Agent no esta instalado en la ruta esperada." -ForegroundColor Red
     return
