@@ -2,7 +2,7 @@
 # Correr como ADMINISTRADOR (escribe en Program Files y reinicia servicio).
 # Ajustar $server a la URL real del GLPI.
 
-$server = "http://10.20.20.234/glpi"   # <-- AJUSTAR
+$server = "https://glpi.e-buytest.com.ar"
 $tag    = "migracion2026"
 
 $base = "C:\Program Files\GLPI-Agent"
