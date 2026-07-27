@@ -34,7 +34,7 @@ if ($tiene) {
 }
 
 Write-Host "=== Acceso SSH al servidor de desarrollo (214) ===" -ForegroundColor Cyan
-Write-Host "Ingresa tu usuario de DOMINIO (sin INFRA) y tu password." -ForegroundColor Yellow
+Write-Host "Ingresar usuario de dominio (sin INFRA) y password." -ForegroundColor Yellow
 
 $user = Read-Host "Usuario de dominio"
 if ([string]::IsNullOrWhiteSpace($user)) {
