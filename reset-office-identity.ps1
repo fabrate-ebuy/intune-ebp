@@ -1,48 +1,97 @@
 <#
 reset-office-identity.ps1
-Limpia el cache de identidad de Office cuando da el error de activacion
+Resuelve el error de activacion de Office:
 "Otra cuenta de su organizacion ya ha iniciado sesion en este dispositivo"
-o cuando Office no activa pese a que el usuario TIENE licencia (verificado que
-la licencia esta OK en Entra, ej. SPB con OFFICE_BUSINESS = Success).
+(a veces con codigo [48v35]), y Office que no activa pese a que el usuario TIENE
+licencia (verificado en Entra: SPB con OFFICE_BUSINESS = Success).
 
-Causa tipica: perfiles migrados con ProfWiz arrastran el cache de identidad viejo
-de Office, o quedo una identidad de una instalacion previa (Office LTSC, otra cuenta).
+VALIDADO en TEST04 / cyalovyy (28/07/2026). Lo que NO alcanzaba:
+  - Limpiar solo HKCU\...\Identity\Identities\*  (el CONTENIDO de la clave)
+  - Limpiar solo las credenciales (SSO_POP_Device, virtualapp/didlogical)
+  - Vaciar solo el Token Broker (WAM)
+  - Reinstalar Office (el instalador NO borra los tokens de Entra del sistema)
+  - Resetear password y MFA del usuario en Entra
+  - Nada de esto servia: el error volvia siempre.
 
-IMPORTANTE: correr EN CONTEXTO DE USUARIO (no admin con otras credenciales), porque
-limpia el HKCU del usuario. En la sesion del usuario, PowerShell NORMAL.
+LO QUE SI FUNCIONO (esta secuencia completa + REINICIO):
+  1. Cerrar TODO lo de Microsoft (Office, Teams, Outlook, navegadores, OneDrive)
+  2. Vaciar  %LOCALAPPDATA%\Microsoft\OneAuth        <- tokens de Entra que sobreviven a todo
+  3. Vaciar  %LOCALAPPDATA%\Microsoft\IdentityCache  <- idem
+  4. Borrar la CLAVE Identities COMPLETA (no su contenido): Office la recrea limpia
+  5. Vaciar el Token Broker (WAM)
+  6. REINICIAR el equipo  <- imprescindible
+  Post-reinicio Office tomo la cuenta solo, sin pedir login.
 
-Despues de correrlo, el usuario debe abrir Word/Excel -> Archivo -> Cuenta ->
-Iniciar sesion, con SU cuenta (+ MFA). Eso reactiva Office. El login es manual,
-no se puede automatizar.
+IMPORTANTE: correr en CONTEXTO DE USUARIO (PowerShell NORMAL en la sesion del usuario,
+NO como admin con otras credenciales) porque limpia el HKCU y el LOCALAPPDATA del usuario.
+Si alguna carpeta no se deja borrar (archivo en uso), reiniciar y correr el script de
+nuevo ANTES de abrir cualquier app de Microsoft.
 
-Es idempotente y seguro (solo borra cache de identidad, no datos ni documentos).
+NOTA sobre la verificacion: OSPP.VBS /dstatus NO sirve para licencias de suscripcion
+(reporta licencias de dispositivo: retail/KMS/MAK) y va a seguir mostrando OOB_GRACE
+aunque Office este activado. Verificar en Word -> Archivo -> Cuenta ("Producto activado",
+sin el cartel amarillo) o mirando %LOCALAPPDATA%\Microsoft\Office\Licenses.
+
+Es idempotente y seguro: no borra datos, documentos ni perfiles.
 #>
 
-Write-Host "== Reset de identidad de Office ==" -ForegroundColor Cyan
+Write-Host "== Reset de identidad de Office (OneAuth + IdentityCache + Identities + WAM) ==" -ForegroundColor Cyan
 Write-Host "Usuario actual: $(whoami)" -ForegroundColor Gray
+Write-Host ""
 
-# 1. Cerrar todas las apps de Office
-Write-Host "Cerrando apps de Office..."
-Get-Process WINWORD,EXCEL,OUTLOOK,POWERPNT,ONENOTE,MSACCESS,MSPUB,lync -EA SilentlyContinue | Stop-Process -Force
+# --- 1. Cerrar TODO lo de Microsoft ---
+Write-Host "1. Cerrando Office, Teams, Outlook, navegadores, OneDrive..."
+Get-Process WINWORD,EXCEL,OUTLOOK,POWERPNT,ONENOTE,MSACCESS,MSPUB,Teams,ms-teams,msedge,chrome,firefox,OneDrive `
+    -EA SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 3
 
-# 2. Limpiar el cache de identidades de Office (16.0 = Office 2016/2019/2021/365)
-Write-Host "Limpiando cache de identidad de Office..."
-Remove-Item "HKCU:\Software\Microsoft\Office\16.0\Common\Identity\Identities\*" -Recurse -Force -EA SilentlyContinue
-Remove-Item "HKCU:\Software\Microsoft\Office\16.0\Common\Identity\Profiles\*"   -Recurse -Force -EA SilentlyContinue
+# --- 2. OneAuth (tokens de Entra) ---
+Write-Host "2. Vaciando OneAuth..."
+Remove-Item "$env:LOCALAPPDATA\Microsoft\OneAuth\*" -Recurse -Force -EA SilentlyContinue
 
-# 3. Limpiar credenciales genericas de Office/SSO en el Administrador de credenciales
-Write-Host "Limpiando credenciales de Office/SSO..."
-$targets = cmdkey /list | Select-String "Destino:" | ForEach-Object { ($_ -split "Destino:")[1].Trim() }
-foreach ($t in $targets) {
-    if ($t -match "MicrosoftOffice16|SSO_POP_Device|virtualapp/didlogical|MSOnline|office365") {
-        cmdkey /delete:$t | Out-Null
-        Write-Host "  Quitada credencial: $t" -ForegroundColor Gray
-    }
+# --- 3. IdentityCache ---
+Write-Host "3. Vaciando IdentityCache..."
+Remove-Item "$env:LOCALAPPDATA\Microsoft\IdentityCache\*" -Recurse -Force -EA SilentlyContinue
+
+# --- 4. Borrar la CLAVE Identities completa (Office la recrea) ---
+Write-Host "4. Borrando la clave Identities completa..."
+Remove-Item "HKCU:\Software\Microsoft\Office\16.0\Common\Identity\Identities" -Recurse -Force -EA SilentlyContinue
+Remove-Item "HKCU:\Software\Microsoft\Office\16.0\Common\Identity\Profiles\*"  -Recurse -Force -EA SilentlyContinue
+
+# --- 5. Token Broker (WAM) ---
+Write-Host "5. Vaciando el Token Broker (WAM)..."
+$broker = "$env:LOCALAPPDATA\Packages\Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy\AC\TokenBroker\Accounts"
+if (Test-Path $broker) {
+    Remove-Item "$broker\*" -Recurse -Force -EA SilentlyContinue
 }
 
+# --- 6. Credenciales de Office/SSO (por prolijidad) ---
+Write-Host "6. Limpiando credenciales de Office/SSO..."
+cmdkey /delete:MicrosoftAccount:target=SSO_POP_Device   2>$null | Out-Null
+cmdkey /delete:WindowsLive:target=virtualapp/didlogical 2>$null | Out-Null
+
+# --- Verificacion ---
 Write-Host ""
-Write-Host "Listo. Ahora el usuario debe:" -ForegroundColor Green
-Write-Host "  1. Abrir Word o Excel" -ForegroundColor Green
-Write-Host "  2. Archivo -> Cuenta -> Iniciar sesion" -ForegroundColor Green
-Write-Host "  3. Ingresar SU cuenta @e-buyplace.com + MFA" -ForegroundColor Green
-Write-Host "Office deberia activar con la licencia del usuario." -ForegroundColor Green
+Write-Host "=== VERIFICACION (todo debe estar vacio / False) ===" -ForegroundColor Cyan
+Write-Host "OneAuth:"       -NoNewline; $a = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\OneAuth" -EA SilentlyContinue
+Write-Host " $($a.Count) items"
+Write-Host "IdentityCache:" -NoNewline; $b = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\IdentityCache" -EA SilentlyContinue
+Write-Host " $($b.Count) items"
+Write-Host "Identities existe: " -NoNewline
+Write-Host (Test-Path "HKCU:\Software\Microsoft\Office\16.0\Common\Identity\Identities")
+Write-Host "TokenBroker:"    -NoNewline; $c = Get-ChildItem $broker -EA SilentlyContinue
+Write-Host " $($c.Count) items"
+
+Write-Host ""
+Write-Host "=== PASO OBLIGATORIO: REINICIAR EL EQUIPO ===" -ForegroundColor Yellow
+Write-Host "Sin reinicio NO funciona. Despues del reinicio:" -ForegroundColor Yellow
+Write-Host "  - Abrir Word (nada mas antes: ni Teams, ni Edge, ni Outlook)" -ForegroundColor Yellow
+Write-Host "  - Deberia tomar la cuenta solo. Si pide login: Archivo -> Cuenta ->" -ForegroundColor Yellow
+Write-Host "    Iniciar sesion con la cuenta del usuario + MFA" -ForegroundColor Yellow
+Write-Host "  - Si aparece 'Permitir que mi organizacion administre el dispositivo':" -ForegroundColor Yellow
+Write-Host "    elegir el link chico 'No, iniciar sesion solo en esta aplicacion'" -ForegroundColor Yellow
+Write-Host "  - Verificar en Word -> Archivo -> Cuenta: 'Producto activado'" -ForegroundColor Yellow
+Write-Host "    (NO usar OSPP.VBS /dstatus: no sirve para licencias de suscripcion)" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Si algo no se dejo borrar (items > 0 arriba), reiniciar y correr este" -ForegroundColor Yellow
+Write-Host "script de nuevo ANTES de abrir apps de Microsoft." -ForegroundColor Yellow
