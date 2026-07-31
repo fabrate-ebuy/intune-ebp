@@ -27,14 +27,14 @@ try {
 } catch {}
 
 if ($tiene) {
-    Write-Host "Ya existe un ticket Kerberos valido. SSO activo." -ForegroundColor Green
+    Write-Host "Ya tenes un ticket Kerberos valido. SSO activo." -ForegroundColor Green
     & $klist
     Start-Sleep -Seconds 2
     exit 0
 }
 
 Write-Host "=== Acceso SSH al servidor de desarrollo (214) ===" -ForegroundColor Cyan
-Write-Host "Ingresar usuario de dominio (SIN INFRA) y password." -ForegroundColor Yellow
+Write-Host "Ingresar usuario de dominio (sin INFRA) y password." -ForegroundColor Yellow
 
 $user = Read-Host "Usuario de dominio"
 if ([string]::IsNullOrWhiteSpace($user)) {
@@ -74,7 +74,7 @@ Host 214
     } else {
         Set-Content -Path $cfg -Value $bloque -Encoding ascii
     }
-    Write-Host "Config SSH actualizado con User=$user." -ForegroundColor Green
+    Write-Host "Config SSH actualizado con User=$user. Ya podes usar 'ssh 214' y VS Code sin password." -ForegroundColor Green
 } else {
     Write-Host "`nNo se pudo obtener el ticket. Revisar usuario/password/conexion." -ForegroundColor Red
 }

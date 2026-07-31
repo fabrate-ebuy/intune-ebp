@@ -1,0 +1,7 @@
+<Configuration>
+  <!-- Desinstala TODAS las versiones de Office del equipo (limpia restos que causan
+       el "error de instalacion del agente") -->
+  <Remove All="TRUE" />
+  <Display Level="None" AcceptEULA="TRUE" />
+  <Property Name="FORCEAPPSHUTDOWN" Value="TRUE" />
+</Configuration>

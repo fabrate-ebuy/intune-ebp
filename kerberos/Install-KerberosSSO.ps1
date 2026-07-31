@@ -7,8 +7,9 @@ Hace todo lo automatico (sin password):
   1. Instala MIT Kerberos (kfw-*.msi)
   2. Coloca krb5.ini (realm, DCs, ticket_lifetime 24h)
   3. Setea KRB5CCNAME=MSLSA: a nivel maquina
-  4. Acceso directo en el escritorio de Get-Ticket-EBP.ps1 en C:\ProgramData\EBP
-
+  4. Coloca el script Get-Ticket-EBP.ps1 en C:\ProgramData\EBP
+  5. Crea una tarea programada AL LOGON de cada usuario que dispara el kinit
+     (el usuario mete su password una vez al dia; NO se guarda)
 
 Empaquetar en el .intunewin junto con:
   - kfw-4.1-amd64.msi
@@ -105,11 +106,46 @@ Write-Host "Entradas de hosts verificadas (DC + 214)." -ForegroundColor Green
 Write-Host "KRB5CCNAME=MSLSA: seteado (maquina)." -ForegroundColor Green
 
 # ---------------------------------------------------------------------------
-# 4. Acceso directo en el escritorio (Public) para que el usuario pueda
+# 4. Copiar Get-Ticket-EBP.ps1 a ProgramData (lo usara la tarea)
+# ---------------------------------------------------------------------------
+$ebpDir = "C:\ProgramData\EBP"
+New-Item -ItemType Directory -Force -Path $ebpDir | Out-Null
+$ticketScript = Join-Path $here "Get-Ticket-EBP.ps1"
+if (Test-Path $ticketScript) {
+    Copy-Item $ticketScript "$ebpDir\Get-Ticket-EBP.ps1" -Force
+    Write-Host "Get-Ticket-EBP.ps1 copiado a $ebpDir." -ForegroundColor Green
+} else {
+    Write-Warning "No se encontro Get-Ticket-EBP.ps1 para copiar."
+}
+
+# ---------------------------------------------------------------------------
+# 6. (El ~/.ssh/config lo genera Get-Ticket-EBP.ps1 con el User correcto,
+#     la primera vez que el usuario obtiene su ticket. No se crea aca para no
+#     dejar un config con el User equivocado.)
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# 7. Tarea programada AL LOGON que dispara el kinit en la sesion del usuario
+#    Corre como el usuario interactivo (NO SYSTEM), para que el ticket vaya
+#    a la sesion de logon del usuario (que es donde VS Code lo lee).
+# ---------------------------------------------------------------------------
+$taskName = "EBP-KerberosTicket"
+$action = New-ScheduledTaskAction -Execute "powershell.exe" `
+    -Argument "-WindowStyle Normal -ExecutionPolicy Bypass -File `"$ebpDir\Get-Ticket-EBP.ps1`""
+$trigger = New-ScheduledTaskTrigger -AtLogOn
+# Principal: el usuario interactivo que inicia sesion (grupo Users), nivel normal
+$principal = New-ScheduledTaskPrincipal -GroupId "S-1-5-32-545" -RunLevel Limited
+$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+
+Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger `
+    -Principal $principal -Settings $settings -Force | Out-Null
+Write-Host "Tarea programada '$taskName' creada (dispara kinit al logon)." -ForegroundColor Green
+
+# ---------------------------------------------------------------------------
+# 8. Acceso directo en el escritorio (Public) para que el usuario pueda
 #    re-obtener el ticket con un click (si no estaba en VPN al iniciar sesion,
 #    o si el ticket expiro a mitad del dia).
 # ---------------------------------------------------------------------------
-$ebpDir = "C:\ProgramData\EBP"
 $lnkPath = "C:\Users\Public\Desktop\Acceso SSH (214).lnk"
 try {
     $ws = New-Object -ComObject WScript.Shell

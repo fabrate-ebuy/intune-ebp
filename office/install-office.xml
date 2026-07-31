@@ -1,0 +1,17 @@
+<Configuration>
+  <!-- Instala Microsoft 365 Apps con la misma config que la app de Intune de E-BUYPLACE:
+       Canal de empresa mensual, 64 bits, es-es + en-us -->
+  <Add OfficeClientEdition="64" Channel="MonthlyEnterprise">
+    <Product ID="O365ProPlusRetail">
+      <Language ID="es-es" />
+      <Language ID="en-us" />
+    </Product>
+  </Add>
+  <!-- Quitar otras versiones (igual que la config de Intune) -->
+  <RemoveMSI />
+  <Property Name="FORCEAPPSHUTDOWN" Value="TRUE" />
+  <Property Name="SharedComputerLicensing" Value="0" />
+  <Property Name="SCLCacheOverride" Value="0" />
+  <Display Level="None" AcceptEULA="TRUE" />
+  <Updates Enabled="TRUE" />
+</Configuration>
