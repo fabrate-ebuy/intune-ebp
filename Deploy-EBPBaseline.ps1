@@ -15,7 +15,7 @@
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$Version = 6
+$Version = 1
 
 # --- Configuracion ---
 $Owner         = "fabrate-ebuy"
