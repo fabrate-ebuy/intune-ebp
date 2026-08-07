@@ -1,0 +1,55 @@
+# ===== 1) NOMBRE CANONICO de cada cuenta Entra en esta notebook (via SID) =====
+Write-Host "`n== Cuentas y su nombre canonico (esto es lo que ABR compara) ==" -ForegroundColor Cyan
+Get-CimInstance Win32_UserProfile | Where-Object { $_.Special -eq $false } |
+  ForEach-Object {
+    $sid = $_.SID
+    try { $name = ([System.Security.Principal.SecurityIdentifier]$sid).Translate([System.Security.Principal.NTAccount]).Value }
+    catch { $name = '(no resuelve)' }
+    [pscustomobject]@{ Nombre = $name; SID = $sid; Perfil = $_.LocalPath }
+  } | Format-Table -Auto
+
+# ===== 2) Miembros actuales del grupo Administradores (los que SIGUEN admin = rojos) =====
+Write-Host "`n== Miembros actuales de Administradores ==" -ForegroundColor Cyan
+Get-LocalGroupMember -Group 'Administradores' -EA SilentlyContinue
+Get-LocalGroupMember -Group 'Administrators' -EA SilentlyContinue
+
+# ===== 3) LOG de ABR: a quien revoco y con que string comparo =====
+Write-Host "`n== Logs de Admin By Request ==" -ForegroundColor Cyan
+Get-ChildItem 'C:\ProgramData\AdminByRequest' -Recurse -Filter '*.log' -EA SilentlyContinue |
+  Select-Object FullName, LastWriteTime | Format-Table -Auto
+# Ultimas lineas del log principal (ajusta el path si el de arriba muestra otro)
+Get-Content 'C:\ProgramData\AdminByRequest\AdminByRequest.log' -Tail 40 -EA SilentlyContinue
+
+# ===== 4) Event log de ABR si escribe ahi =====
+Write-Host "`n== Event logs de ABR ==" -ForegroundColor Cyan
+Get-WinEvent -ListLog *dmin*equest* -EA SilentlyContinue | Select-Object LogName, RecordCount
+
+
+# ===== 5) Agregar manualmente el usuario Entra al grupo Administradores local =====
+# Reemplaza el nombre por el CANONICO exacto que devolvio el BLOQUE 1, seccion 1.
+# Ej: "AzureAD\GermanGhio"  (respeta mayus/minus y como lo resolvio el SID)
+
+$usuario = "AzureAD\GermanGhio"   # <-- CAMBIAR por el canonico real de este equipo
+
+# Intenta en espanol y en ingles (segun idioma del SO)
+try {
+    Add-LocalGroupMember -Group 'Administradores' -Member $usuario -EA Stop
+    Write-Host "Agregado a 'Administradores': $usuario" -ForegroundColor Green
+} catch {
+    try {
+        Add-LocalGroupMember -Group 'Administrators' -Member $usuario -EA Stop
+        Write-Host "Agregado a 'Administrators': $usuario" -ForegroundColor Green
+    } catch {
+        Write-Host "Fallo con nombre. Intentando por SID..." -ForegroundColor Yellow
+        # Fallback por SID si el nombre no resuelve
+        # Reemplaza el SID por el que devolvio el BLOQUE 1
+        $sid = "S-1-12-1-XXXX"   # <-- CAMBIAR por el SID real si hace falta
+        net localgroup Administradores $sid /add 2>$null
+        net localgroup Administrators  $sid /add 2>$null
+    }
+}
+
+# Verificar que quedo agregado
+Write-Host "`n== Verificacion ==" -ForegroundColor Cyan
+Get-LocalGroupMember -Group 'Administradores' -EA SilentlyContinue
+Get-LocalGroupMember -Group 'Administrators' -EA SilentlyContinue
