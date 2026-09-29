@@ -14,11 +14,19 @@ if (-not (Test-Path "$env:USERPROFILE\.step\certs\root_ca.crt")) {
     & $s ca bootstrap --ca-url $ca --fingerprint $fp --force
 }
 
-# Primera vez: entrada SSH
+# Entrada SSH: reemplaza cualquier bloque 'Host 214' previo (Kerberos) por el de certificado
 $cfg = "$env:USERPROFILE\.ssh\config"
 New-Item -ItemType Directory "$env:USERPROFILE\.ssh" -Force | Out-Null
-if (-not (Test-Path $cfg) -or -not (Select-String -Path $cfg -Pattern '^\s*Host\s+214\b' -Quiet)) {
-    Add-Content $cfg "`nHost 214`n    HostName 10.30.20.214`n    User $u"
+$lines = @(); if (Test-Path $cfg) { $lines = Get-Content $cfg }
+if (-not ($lines -match '^\s*HostName\s+10\.30\.20\.214\s*$')) {
+    $out = @(); $skip = $false
+    foreach ($l in $lines) {
+        if ($l -match '^\s*Host\s+214\s*$') { $skip = $true; continue }
+        if ($skip -and $l -match '^\s*Host\s+') { $skip = $false }
+        if (-not $skip) { $out += $l }
+    }
+    $out += '', 'Host 214', '    HostName 10.30.20.214', "    User $u"
+    [System.IO.File]::WriteAllText($cfg, ($out -join "`r`n"), (New-Object System.Text.UTF8Encoding($false)))
 }
 
 # Certificado
