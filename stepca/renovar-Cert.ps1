@@ -17,8 +17,8 @@ if (-not (Test-Path "$env:USERPROFILE\.step\certs\root_ca.crt")) {
 # Primera vez: entrada SSH
 $cfg = "$env:USERPROFILE\.ssh\config"
 New-Item -ItemType Directory "$env:USERPROFILE\.ssh" -Force | Out-Null
-if (-not (Test-Path $cfg) -or -not (Select-String -Path $cfg -Pattern '^\s*Host\s+desarrollo\b' -Quiet)) {
-    Add-Content $cfg "`nHost desarrollo`n    HostName 10.30.20.214`n    User $u"
+if (-not (Test-Path $cfg) -or -not (Select-String -Path $cfg -Pattern '^\s*Host\s+214\b' -Quiet)) {
+    Add-Content $cfg "`nHost 214`n    HostName 10.30.20.214`n    User $u"
 }
 
 # Certificado
@@ -28,7 +28,7 @@ if (-not (ssh-add -L 2>$null | Select-String $upn)) {
 }
 
 if (ssh-add -L 2>$null | Select-String $upn) {
-    Write-Host 'Certificado vigente. Ya podes usar VSCode (host desarrollo), ssh desarrollo o WinSCP.' -ForegroundColor Green
+    Write-Host 'Certificado vigente. Ya podes usar VSCode (host 214), ssh 214 o WinSCP.' -ForegroundColor Green
 } else {
     Write-Host 'No se obtuvo certificado. Si la CA se reinicio hace poco, espera 5-10 min y reintenta.' -ForegroundColor Red
 }

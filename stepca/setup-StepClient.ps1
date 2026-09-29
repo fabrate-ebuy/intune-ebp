@@ -19,7 +19,7 @@ Set-Service ssh-agent -StartupType Automatic
 Start-Service ssh-agent
 
 # Acceso directo en el escritorio publico -> script del toolkit
-$target = 'C:\ProgramData\EBP\stepca\Renovar-Cert.ps1'
+$target = 'C:\ProgramData\EBP\stepca\renovar-Cert.ps1'
 $pub = [Environment]::GetFolderPath('CommonDesktopDirectory')
 $w = New-Object -ComObject WScript.Shell
 $sc = $w.CreateShortcut("$pub\Renovar certificado.lnk")
