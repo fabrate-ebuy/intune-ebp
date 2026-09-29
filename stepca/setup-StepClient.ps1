@@ -10,9 +10,19 @@ if (-not (Test-Path "$bin\step.exe")) {
 $mp = [Environment]::GetEnvironmentVariable('Path','Machine')
 if ($mp -notlike "*$bin*") { [Environment]::SetEnvironmentVariable('Path', "$mp;$bin", 'Machine') }
 
-# WinSSH-Pageant
-$wg = (Get-ChildItem "C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1).FullName
-if ($wg) { & $wg install --id NathanBeals.WinSSH-Pageant --silent --accept-package-agreements --accept-source-agreements --disable-interactivity }
+# WinSSH-Pageant (extraccion del MSI, version fija, hash verificado)
+$pgDir = 'C:\Program Files\WinSSH-Pageant'
+$pgExe = "$pgDir\winssh-pageant.exe"
+if (-not (Test-Path $pgExe)) {
+    $msi = "$env:TEMP\winssh-pageant.msi"
+    Invoke-WebRequest 'https://github.com/ndbeals/winssh-pageant/releases/download/v2.3.1/winssh-pageant-v2.3.1_amd64.msi' -OutFile $msi -UseBasicParsing
+    if ((Get-FileHash $msi -Algorithm SHA256).Hash -ne 'D2E857B2BBD12ABAE9D7B7E3D54B284F9AD901C5E8AF38CDCC6DEB5556D95093') { Write-Output 'Hash de WinSSH-Pageant invalido'; exit 1 }
+    Start-Process msiexec.exe -ArgumentList "/a `"$msi`" /qn TARGETDIR=`"$env:TEMP\pg-x`"" -Wait
+    New-Item -ItemType Directory $pgDir -Force | Out-Null
+    Copy-Item (Get-ChildItem "$env:TEMP\pg-x" -Recurse -Filter winssh-pageant.exe | Select-Object -First 1).FullName $pgExe -Force
+}
+# Arranque automatico en cada inicio de sesion (todos los usuarios)
+New-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'WinSSH-Pageant' -Value "`"$pgExe`"" -PropertyType String -Force | Out-Null
 
 # ssh-agent
 Set-Service ssh-agent -StartupType Automatic
