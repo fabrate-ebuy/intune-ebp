@@ -1,3 +1,4 @@
+# renovar-Cert.ps1 - lo ejecuta el usuario desde el acceso directo
 $s  = 'C:\Program Files\Smallstep\bin\step.exe'
 $ca = 'https://10.30.20.5:8443'
 $fp = '3d60d1682305ef6c08b6018e85a3cd6889040b754c40c8521d7d17c8c01bcc98'
@@ -29,6 +30,25 @@ if (-not ($lines -match '^\s*HostName\s+10\.30\.20\.214\s*$')) {
     [System.IO.File]::WriteAllText($cfg, ($out -join "`r`n"), (New-Object System.Text.UTF8Encoding($false)))
 }
 
+# WinSCP: sitio '214' (solo si no existe)
+$ws = 'HKCU:\Software\Martin Prikryl\WinSCP 2\Sessions\214'
+if (-not (Test-Path $ws)) {
+    New-Item $ws -Force | Out-Null
+    New-ItemProperty $ws -Name HostName -Value '10.30.20.214' -PropertyType String -Force | Out-Null
+    New-ItemProperty $ws -Name UserName -Value $u -PropertyType String -Force | Out-Null
+}
+
+# WinSCP: acceso directo 'WinSCP 214' en el escritorio del usuario
+$scp = @("$env:LOCALAPPDATA\Programs\WinSCP\WinSCP.exe",'C:\Program Files (x86)\WinSCP\WinSCP.exe','C:\Program Files\WinSCP\WinSCP.exe') | Where-Object { Test-Path $_ } | Select-Object -First 1
+$lnk = "$([Environment]::GetFolderPath('Desktop'))\WinSCP 214.lnk"
+if ($scp -and -not (Test-Path $lnk)) {
+    $w  = New-Object -ComObject WScript.Shell
+    $sc = $w.CreateShortcut($lnk)
+    $sc.TargetPath = $scp
+    $sc.Arguments  = '"214" /Desktop'
+    $sc.Save()
+}
+
 # Certificado
 if (-not (ssh-add -L 2>$null | Select-String $upn)) {
     Write-Host 'Autenticate en Office 365 en el navegador...' -ForegroundColor Yellow
@@ -36,7 +56,7 @@ if (-not (ssh-add -L 2>$null | Select-String $upn)) {
 }
 
 if (ssh-add -L 2>$null | Select-String $upn) {
-    Write-Host 'Certificado vigente. Ya podes usar VSCode (host 214), ssh 214 o WinSCP.' -ForegroundColor Green
+    Write-Host 'Certificado vigente. Ya podes usar VSCode (host 214), ssh 214 o WinSCP 214.' -ForegroundColor Green
 } else {
     Write-Host 'No se obtuvo certificado. Si la CA se reinicio hace poco, espera 5-10 min y reintenta.' -ForegroundColor Red
 }
