@@ -2,7 +2,7 @@
 # Deploy-EBPBaseline.ps1
 # Despliegue de toolkit corporativo + wallpaper/lockscreen
 # Ejecutar como SYSTEM desde Intune (Scripts de plataforma)
-# VERSION: 1  <-- subir este numero para forzar re-ejecucion en toda la flota
+# VERSION: 2  <-- subir este numero para forzar re-ejecucion en toda la flota
 # ============================================================
 # Espeja TODO el arbol del repo en C:\ProgramData\EBP, respetando las
 # subcarpetas que tenga el repo (recursivo). Hace MIRROR: lo que ya no
